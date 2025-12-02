@@ -1,0 +1,27 @@
+{
+	"nodes":[
+		{"id":"71d52c68006aace3","type":"text","text":"Создание плана разработки. Разбивка на задачи первого уровня, подзадачи второго уровня, подзадачи третьего уровня. ","x":-200,"y":-260,"width":250,"height":180},
+		{"id":"df7891eb163e1240","type":"text","text":"Initializer agent","x":-200,"y":-60,"width":250,"height":60},
+		{"id":"21095564b565d358","type":"text","text":"Берется одна задача для выполнения. ","x":-200,"y":20,"width":250,"height":60},
+		{"id":"d79b4bfe8479ed3a","type":"text","text":"Отслеживание прогресса задач","x":80,"y":120,"width":250,"height":60},
+		{"id":"26bd789042032ed0","type":"text","text":"Логирование выполнения","x":-480,"y":120,"width":250,"height":60},
+		{"id":"78d8ffc6307ba477","type":"text","text":"Создание документации","x":-200,"y":150,"width":250,"height":60},
+		{"id":"829057fd2fe8d3c4","type":"text","text":"Результат выполнения. Лог, переключения статуса. ","x":-200,"y":240,"width":250,"height":100},
+		{"id":"783f658e759c72ad","type":"text","text":"Подробное описание каждого механизма","x":-640,"y":-70,"width":250,"height":70},
+		{"id":"181d3ca724f0222f","type":"text","text":"Основные цели и механизмы","x":-640,"y":-170,"width":250,"height":60},
+		{"id":"4b16e40f207a6a57","type":"text","text":"Создание основной документации","x":-640,"y":-260,"width":250,"height":50}
+	],
+	"edges":[
+		{"id":"80a231a89c05cb6d","fromNode":"4b16e40f207a6a57","fromSide":"bottom","toNode":"181d3ca724f0222f","toSide":"top"},
+		{"id":"916b7f50f7c08e52","fromNode":"181d3ca724f0222f","fromSide":"bottom","toNode":"783f658e759c72ad","toSide":"top"},
+		{"id":"d61f07c9ee1ca24c","fromNode":"783f658e759c72ad","fromSide":"right","toNode":"71d52c68006aace3","toSide":"left"},
+		{"id":"9267209d4686ec39","fromNode":"71d52c68006aace3","fromSide":"bottom","toNode":"df7891eb163e1240","toSide":"top"},
+		{"id":"cbdcf46d97146b3e","fromNode":"df7891eb163e1240","fromSide":"bottom","toNode":"21095564b565d358","toSide":"top"},
+		{"id":"9190d5d22e61d69d","fromNode":"21095564b565d358","fromSide":"bottom","toNode":"78d8ffc6307ba477","toSide":"top"},
+		{"id":"0c53fb60482177b8","fromNode":"21095564b565d358","fromSide":"bottom","toNode":"26bd789042032ed0","toSide":"top"},
+		{"id":"847984fd0e2acddf","fromNode":"21095564b565d358","fromSide":"bottom","toNode":"d79b4bfe8479ed3a","toSide":"top"},
+		{"id":"0c562664255779e9","fromNode":"78d8ffc6307ba477","fromSide":"bottom","toNode":"829057fd2fe8d3c4","toSide":"top"},
+		{"id":"127ff31feea6b078","fromNode":"26bd789042032ed0","fromSide":"bottom","toNode":"829057fd2fe8d3c4","toSide":"left"},
+		{"id":"31eb0851505bbe59","fromNode":"d79b4bfe8479ed3a","fromSide":"bottom","toNode":"829057fd2fe8d3c4","toSide":"right"}
+	]
+}
