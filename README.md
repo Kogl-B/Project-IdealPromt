@@ -20,6 +20,10 @@ Project-IdealPromt/
 
 ## 🚀 Как начать / Getting Started
 
+**👉 Новичкам: начните с [Quick Start Guide](QUICKSTART.md) или [Гида для новичков](guides/beginners-guide.md)**
+
+**👉 New users: start with the [Quick Start Guide](QUICKSTART.md) or [Beginner's Guide](guides/beginners-guide.md)**
+
 ### Поделиться опытом / Share Your Experience
 
 1. Перейдите в папку `experiences/` для описания вашего опыта
@@ -63,9 +67,11 @@ Project-IdealPromt/
 
 ## 📖 Полезные ресурсы / Useful Resources
 
+- [Быстрый старт (5 минут)](QUICKSTART.md)
 - [Руководство по написанию промтов](guides/prompt-writing-guide.md)
 - [Примеры эффективных промтов](examples/)
 - [Лучшие практики](guides/best-practices.md)
+- [Гид для новичков](guides/beginners-guide.md)
 
 ## 🌍 Сообщество / Community
 
