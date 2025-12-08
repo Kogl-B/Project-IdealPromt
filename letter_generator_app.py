@@ -367,15 +367,28 @@ class LetterGeneratorApp:
     
     def merge_documents(self, doc1, doc2):
         """Объединение двух документов: добавление содержимого doc2 в конец doc1"""
-        from copy import deepcopy
+        import tempfile
+        
+        # Сохраняем doc2 во временный файл
+        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp:
+            temp_path = tmp.name
+            doc2.save(temp_path)
+        
+        # Загружаем временный файл заново
+        temp_doc = Document(temp_path)
         
         # Добавляем разрыв страницы перед добавлением нового содержимого
         doc1.add_page_break()
         
-        # Копируем все элементы из doc2 в doc1 через deepcopy
-        for element in doc2.element.body:
-            # Создаем глубокую копию элемента для добавления
-            doc1.element.body.append(deepcopy(element))
+        # Копируем все элементы из временного документа
+        for element in temp_doc.element.body:
+            doc1.element.body.append(element)
+        
+        # Удаляем временный файл
+        try:
+            os.unlink(temp_path)
+        except:
+            pass
         
         return doc1
     
