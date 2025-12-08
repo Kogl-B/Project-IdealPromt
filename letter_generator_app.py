@@ -462,15 +462,15 @@ class LetterGeneratorApp:
             
             # Режим: все в одном файле
             if self.merge_mode.get() == "single":
-                merged_doc1 = None  # Объединенный документ для Уведомлений
-                merged_doc2 = None  # Объединенный документ для Не занятых
+                import tempfile
+                temp_files1 = []  # Временные файлы для Уведомлений
+                temp_files2 = []  # Временные файлы для Не занятых
                 
                 for i, data in enumerate(data_list, 1):
                     self.log(f"\n[{i}/{total}] Обработка: {data['name_initials']}")
                     
                     # Генерация временного первого письма
                     temp_doc1 = Document(self.template1_path.get())
-                    # Очищаем колонтитулы и отступы
                     self.clear_headers_footers(temp_doc1)
                     date_full = f"{data['date']} года рождения" if data['date'] else ''
                     date_short = f"{data['date']} рождения" if data['date'] else ''
@@ -483,16 +483,16 @@ class LetterGeneratorApp:
                     }
                     self.replace_in_document(temp_doc1, replacements1)
                     
-                    if merged_doc1 is None:
-                        merged_doc1 = temp_doc1
-                    else:
-                        merged_doc1 = self.merge_documents(merged_doc1, temp_doc1)
+                    # Сохраняем во временный файл
+                    tmp1 = tempfile.NamedTemporaryFile(suffix='.docx', delete=False)
+                    temp_doc1.save(tmp1.name)
+                    temp_files1.append(tmp1.name)
+                    tmp1.close()
                     
-                    self.log(f"  ✓ Добавлено: Уведомление для {data['name_initials']}")
+                    self.log(f"  ✓ Подготовлено: Уведомление для {data['name_initials']}")
                     
                     # Генерация временного второго письма
                     temp_doc2 = Document(self.template2_path.get())
-                    # Очищаем колонтитулы и отступы
                     self.clear_headers_footers(temp_doc2)
                     replacements2 = {
                         self.TEMPLATE_NAME: data['name_initials'],
@@ -500,33 +500,106 @@ class LetterGeneratorApp:
                     }
                     self.replace_in_document(temp_doc2, replacements2)
                     
-                    if merged_doc2 is None:
-                        merged_doc2 = temp_doc2
-                    else:
-                        merged_doc2 = self.merge_documents(merged_doc2, temp_doc2)
+                    # Сохраняем во временный файл
+                    tmp2 = tempfile.NamedTemporaryFile(suffix='.docx', delete=False)
+                    temp_doc2.save(tmp2.name)
+                    temp_files2.append(tmp2.name)
+                    tmp2.close()
                     
-                    self.log(f"  ✓ Добавлено: Не занятые для {data['name_initials']}")
+                    self.log(f"  ✓ Подготовлено: Не занятые для {data['name_initials']}")
                     
                     # Обновление прогресса
                     self.progress['value'] = i
                     self.root.update_idletasks()
                 
-                # Сохранение объединенных документов
-                if merged_doc1:
-                    # Финальная очистка колонтитулов перед сохранением
+                # Объединяем все временные файлы в один документ
+                self.log("\n--- Объединение документов ---")
+                
+                if temp_files1:
+                    merged_doc1 = Document(temp_files1[0])
+                    for temp_file in temp_files1[1:]:
+                        temp_doc = Document(temp_file)
+                        merged_doc1.add_page_break()
+                        # Копируем параграфы
+                        for para in temp_doc.paragraphs:
+                            new_para = merged_doc1.add_paragraph()
+                            new_para.alignment = para.alignment
+                            new_para.paragraph_format.left_indent = para.paragraph_format.left_indent
+                            new_para.paragraph_format.right_indent = para.paragraph_format.right_indent
+                            new_para.paragraph_format.first_line_indent = para.paragraph_format.first_line_indent
+                            new_para.paragraph_format.space_before = para.paragraph_format.space_before
+                            new_para.paragraph_format.space_after = para.paragraph_format.space_after
+                            for run in para.runs:
+                                new_run = new_para.add_run(run.text)
+                                new_run.bold = run.bold
+                                new_run.italic = run.italic
+                                new_run.underline = run.underline
+                                if run.font.size:
+                                    new_run.font.size = run.font.size
+                                if run.font.name:
+                                    new_run.font.name = run.font.name
+                        # Копируем таблицы
+                        for table in temp_doc.tables:
+                            new_table = merged_doc1.add_table(rows=len(table.rows), cols=len(table.columns))
+                            for i_row, row in enumerate(table.rows):
+                                for i_col, cell in enumerate(row.cells):
+                                    new_table.rows[i_row].cells[i_col].text = cell.text
+                    
                     self.clear_headers_footers(merged_doc1)
                     output1 = os.path.join(output_dir, "Уведомления_все.docx")
                     merged_doc1.save(output1)
-                    self.log(f"\n✓ Сохранен объединенный файл: Уведомления_все.docx")
+                    self.log(f"✓ Сохранен объединенный файл: Уведомления_все.docx")
                     created_count += 1
+                    
+                    # Удаляем временные файлы
+                    for temp_file in temp_files1:
+                        try:
+                            os.unlink(temp_file)
+                        except:
+                            pass
                 
-                if merged_doc2:
-                    # Финальная очистка колонтитулов перед сохранением
+                if temp_files2:
+                    merged_doc2 = Document(temp_files2[0])
+                    for temp_file in temp_files2[1:]:
+                        temp_doc = Document(temp_file)
+                        merged_doc2.add_page_break()
+                        # Копируем параграфы
+                        for para in temp_doc.paragraphs:
+                            new_para = merged_doc2.add_paragraph()
+                            new_para.alignment = para.alignment
+                            new_para.paragraph_format.left_indent = para.paragraph_format.left_indent
+                            new_para.paragraph_format.right_indent = para.paragraph_format.right_indent
+                            new_para.paragraph_format.first_line_indent = para.paragraph_format.first_line_indent
+                            new_para.paragraph_format.space_before = para.paragraph_format.space_before
+                            new_para.paragraph_format.space_after = para.paragraph_format.space_after
+                            for run in para.runs:
+                                new_run = new_para.add_run(run.text)
+                                new_run.bold = run.bold
+                                new_run.italic = run.italic
+                                new_run.underline = run.underline
+                                if run.font.size:
+                                    new_run.font.size = run.font.size
+                                if run.font.name:
+                                    new_run.font.name = run.font.name
+                        # Копируем таблицы
+                        for table in temp_doc.tables:
+                            new_table = merged_doc2.add_table(rows=len(table.rows), cols=len(table.columns))
+                            for i_row, row in enumerate(table.rows):
+                                for i_col, cell in enumerate(row.cells):
+                                    new_table.rows[i_row].cells[i_col].text = cell.text
+                    
                     self.clear_headers_footers(merged_doc2)
                     output2 = os.path.join(output_dir, "Не_занятые_все.docx")
                     merged_doc2.save(output2)
                     self.log(f"✓ Сохранен объединенный файл: Не_занятые_все.docx")
                     created_count += 1
+                    
+                    # Удаляем временные файлы
+                    for temp_file in temp_files2:
+                        try:
+                            os.unlink(temp_file)
+                        except:
+                            pass
             
             # Режим: отдельные файлы
             else:
