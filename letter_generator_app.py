@@ -367,13 +367,15 @@ class LetterGeneratorApp:
     
     def merge_documents(self, doc1, doc2):
         """Объединение двух документов: добавление содержимого doc2 в конец doc1"""
+        from copy import deepcopy
+        
         # Добавляем разрыв страницы перед добавлением нового содержимого
         doc1.add_page_break()
         
-        # Копируем все элементы из doc2 в doc1
+        # Копируем все элементы из doc2 в doc1 через deepcopy
         for element in doc2.element.body:
-            # Создаем копию элемента для добавления
-            doc1.element.body.append(element)
+            # Создаем глубокую копию элемента для добавления
+            doc1.element.body.append(deepcopy(element))
         
         return doc1
     
