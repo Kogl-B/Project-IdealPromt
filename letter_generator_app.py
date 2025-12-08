@@ -58,6 +58,14 @@ class LetterGeneratorApp:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
         
+        # === Контакты автора ===
+        header_frame = ttk.Frame(main_frame)
+        header_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        author_label = ttk.Label(header_frame, text="Created by Kogl | korobach2222@mail.ru", 
+                                 foreground="gray", font=('TkDefaultFont', 8))
+        author_label.pack(side=tk.RIGHT)
+        
         # === Секция выбора файлов ===
         files_frame = ttk.LabelFrame(main_frame, text="Выбор файлов", padding="10")
         files_frame.pack(fill=tk.X, pady=(0, 10))
@@ -114,15 +122,7 @@ class LetterGeneratorApp:
         
         self.log_text = scrolledtext.ScrolledText(log_frame, height=12, wrap=tk.WORD)
         self.log_text.pack(fill=tk.BOTH, expand=True)
-        
-        # === Контакты автора ===
-        footer_frame = ttk.Frame(main_frame)
-        footer_frame.pack(fill=tk.X, pady=(5, 0))
-        
-        author_label = ttk.Label(footer_frame, text="Created by Kogl | korobach2222@mail.ru", 
-                                 foreground="gray", font=('TkDefaultFont', 8))
-        author_label.pack(side=tk.RIGHT)
-        
+    
     def load_config(self):
         """Загрузка сохраненных путей из конфигурационного файла"""
         if os.path.exists(self.config_file):
