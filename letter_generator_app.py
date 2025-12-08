@@ -34,6 +34,7 @@ class LetterGeneratorApp:
         self.excel_path = tk.StringVar()
         self.output_dir = tk.StringVar(value=os.path.join(os.getcwd(), "Готовые письма"))
         self.test_mode = tk.BooleanVar(value=False)
+        self.merge_mode = tk.StringVar(value="separate")  # "separate" или "single"
         
         # Загрузка сохраненных путей
         self.load_config()
@@ -88,7 +89,14 @@ class LetterGeneratorApp:
         settings_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Checkbutton(settings_frame, text="Тест (обработать только первую строку)", 
-                        variable=self.test_mode).pack(anchor=tk.W)
+                        variable=self.test_mode).pack(anchor=tk.W, pady=(0, 10))
+        
+        # Режим создания документов
+        ttk.Label(settings_frame, text="Режим создания документов:").pack(anchor=tk.W)
+        ttk.Radiobutton(settings_frame, text="Отдельные файлы для каждого человека",
+                        variable=self.merge_mode, value="separate").pack(anchor=tk.W, padx=(20, 0))
+        ttk.Radiobutton(settings_frame, text="Всё в одном файле Word",
+                        variable=self.merge_mode, value="single").pack(anchor=tk.W, padx=(20, 0))
         
         # === Кнопка запуска ===
         button_frame = ttk.Frame(main_frame)
@@ -126,6 +134,7 @@ class LetterGeneratorApp:
                     self.excel_path.set(config.get('excel_path', ''))
                     self.output_dir.set(config.get('output_dir', os.path.join(os.getcwd(), "Готовые письма")))
                     self.test_mode.set(config.get('test_mode', False))
+                    self.merge_mode.set(config.get('merge_mode', 'separate'))
             except Exception as e:
                 print(f"Ошибка загрузки конфигурации: {e}")
     
@@ -137,7 +146,8 @@ class LetterGeneratorApp:
                 'template2_path': self.template2_path.get(),
                 'excel_path': self.excel_path.get(),
                 'output_dir': self.output_dir.get(),
-                'test_mode': self.test_mode.get()
+                'test_mode': self.test_mode.get(),
+                'merge_mode': self.merge_mode.get()
             }
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
@@ -352,6 +362,20 @@ class LetterGeneratorApp:
         thread = Thread(target=self.process_files)
         thread.start()
     
+    def merge_documents(self, doc1, doc2):
+        """Объединение двух документов: добавление содержимого doc2 в конец doc1"""
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+        
+        # Добавляем разрыв страницы
+        doc1.add_page_break()
+        
+        # Копируем все параграфы из doc2 в doc1
+        for element in doc2.element.body:
+            doc1.element.body.append(element)
+        
+        return doc1
+    
     def process_files(self):
         """Основная логика обработки файлов"""
         try:
@@ -380,6 +404,12 @@ class LetterGeneratorApp:
             else:
                 self.log(f"\n*** ПОЛНЫЙ РЕЖИМ - будут обработаны все {len(data_list)} записей ***")
             
+            # Показать режим создания документов
+            if self.merge_mode.get() == "single":
+                self.log("*** РЕЖИМ: Все документы в одном файле ***")
+            else:
+                self.log("*** РЕЖИМ: Отдельные файлы для каждого человека ***")
+            
             # Показать пример данных
             self.log("\nПример данных для обработки:")
             for i, d in enumerate(data_list[:3], 1):
@@ -394,41 +424,105 @@ class LetterGeneratorApp:
             self.log("\n--- Генерация писем ---")
             created_count = 0
             
-            for i, data in enumerate(data_list, 1):
-                self.log(f"\n[{i}/{total}] Обработка: {data['name_initials']}")
+            # Режим: все в одном файле
+            if self.merge_mode.get() == "single":
+                merged_doc1 = None  # Объединенный документ для Уведомлений
+                merged_doc2 = None  # Объединенный документ для Не занятых
                 
-                # Безопасное имя файла
-                safe_name = re.sub(r'[<>:"/\\|?*]', '_', data['name_initials'])
+                for i, data in enumerate(data_list, 1):
+                    self.log(f"\n[{i}/{total}] Обработка: {data['name_initials']}")
+                    
+                    # Генерация временного первого письма
+                    temp_doc1 = Document(self.template1_path.get())
+                    date_full = f"{data['date']} года рождения" if data['date'] else ''
+                    date_short = f"{data['date']} рождения" if data['date'] else ''
+                    replacements1 = {
+                        self.TEMPLATE_NAME: data['name_initials'],
+                        self.TEMPLATE_DATE_FULL: date_full,
+                        self.TEMPLATE_DATE_SHORT: date_short,
+                        self.TEMPLATE_DATE: data['date'],
+                        self.TEMPLATE_ADDRESS: data['address'],
+                    }
+                    self.replace_in_document(temp_doc1, replacements1)
+                    
+                    if merged_doc1 is None:
+                        merged_doc1 = temp_doc1
+                    else:
+                        merged_doc1 = self.merge_documents(merged_doc1, temp_doc1)
+                    
+                    self.log(f"  ✓ Добавлено: Уведомление для {data['name_initials']}")
+                    
+                    # Генерация временного второго письма
+                    temp_doc2 = Document(self.template2_path.get())
+                    replacements2 = {
+                        self.TEMPLATE_NAME: data['name_initials'],
+                        self.TEMPLATE_ADDRESS_SHORT: data['address'],
+                    }
+                    self.replace_in_document(temp_doc2, replacements2)
+                    
+                    if merged_doc2 is None:
+                        merged_doc2 = temp_doc2
+                    else:
+                        merged_doc2 = self.merge_documents(merged_doc2, temp_doc2)
+                    
+                    self.log(f"  ✓ Добавлено: Не занятые для {data['name_initials']}")
+                    
+                    # Обновление прогресса
+                    self.progress['value'] = i
+                    self.root.update_idletasks()
                 
-                # Генерация первого письма (Уведомление + Приглашение)
-                output1 = os.path.join(output_dir, f"Уведомление_{safe_name}.docx")
-                replaced1 = self.generate_letter(self.template1_path.get(), output1, data, is_template1=True)
-                self.log(f"  ✓ Создано: Уведомление_{safe_name}.docx")
-                name_count = replaced1.get(self.TEMPLATE_NAME, 0)
-                date_count = replaced1.get(self.TEMPLATE_DATE_FULL, 0) + replaced1.get(self.TEMPLATE_DATE_SHORT, 0)
-                addr_count = replaced1.get(self.TEMPLATE_ADDRESS, 0)
-                self.log(f"    Замены: Имя={name_count}, Дата={date_count}, Адрес={addr_count}")
-                created_count += 1
+                # Сохранение объединенных документов
+                if merged_doc1:
+                    output1 = os.path.join(output_dir, "Уведомления_все.docx")
+                    merged_doc1.save(output1)
+                    self.log(f"\n✓ Сохранен объединенный файл: Уведомления_все.docx")
+                    created_count += 1
                 
-                # Генерация второго письма (Не занятые)
-                output2 = os.path.join(output_dir, f"Не_занятые_{safe_name}.docx")
-                replaced2 = self.generate_letter(self.template2_path.get(), output2, data, is_template1=False)
-                self.log(f"  ✓ Создано: Не_занятые_{safe_name}.docx")
-                created_count += 1
-                
-                # Обновление прогресса
-                self.progress['value'] = i
-                self.root.update_idletasks()
+                if merged_doc2:
+                    output2 = os.path.join(output_dir, "Не_занятые_все.docx")
+                    merged_doc2.save(output2)
+                    self.log(f"✓ Сохранен объединенный файл: Не_занятые_все.docx")
+                    created_count += 1
+            
+            # Режим: отдельные файлы
+            else:
+                for i, data in enumerate(data_list, 1):
+                    self.log(f"\n[{i}/{total}] Обработка: {data['name_initials']}")
+                    
+                    # Безопасное имя файла
+                    safe_name = re.sub(r'[<>:"/\\|?*]', '_', data['name_initials'])
+                    
+                    # Генерация первого письма (Уведомление + Приглашение)
+                    output1 = os.path.join(output_dir, f"Уведомление_{safe_name}.docx")
+                    replaced1 = self.generate_letter(self.template1_path.get(), output1, data, is_template1=True)
+                    self.log(f"  ✓ Создано: Уведомление_{safe_name}.docx")
+                    name_count = replaced1.get(self.TEMPLATE_NAME, 0)
+                    date_count = replaced1.get(self.TEMPLATE_DATE_FULL, 0) + replaced1.get(self.TEMPLATE_DATE_SHORT, 0)
+                    addr_count = replaced1.get(self.TEMPLATE_ADDRESS, 0)
+                    self.log(f"    Замены: Имя={name_count}, Дата={date_count}, Адрес={addr_count}")
+                    created_count += 1
+                    
+                    # Генерация второго письма (Не занятые)
+                    output2 = os.path.join(output_dir, f"Не_занятые_{safe_name}.docx")
+                    replaced2 = self.generate_letter(self.template2_path.get(), output2, data, is_template1=False)
+                    self.log(f"  ✓ Создано: Не_занятые_{safe_name}.docx")
+                    created_count += 1
+                    
+                    # Обновление прогресса
+                    self.progress['value'] = i
+                    self.root.update_idletasks()
             
             self.log("\n" + "=" * 50)
-            self.log(f"ГОТОВО! Создано писем: {created_count}")
+            self.log(f"ГОТОВО! Создано файлов: {created_count}")
             self.log(f"Результаты в папке: {output_dir}")
             self.log("=" * 50)
             
-            messagebox.showinfo("Успех", f"Обработка завершена!\nСоздано писем: {created_count}")
+            messagebox.showinfo("Успех", f"Обработка завершена!\nСоздано файлов: {created_count}")
             
         except Exception as e:
             self.log(f"\nОШИБКА: {str(e)}")
+            import traceback
+            self.log(traceback.format_exc())
             messagebox.showerror("Ошибка", f"Произошла ошибка:\n{str(e)}")
         
         finally:
