@@ -304,6 +304,9 @@ class LetterGeneratorApp:
         """Генерация письма из шаблона"""
         doc = Document(template_path)
         
+        # Очищаем колонтитулы и отступы
+        self.clear_headers_footers(doc)
+        
         if is_template1:
             # Для первого шаблона (2 страницы - уведомление и приглашение)
             # Заменяем: Имя, Дату (два варианта), Адрес
@@ -364,17 +367,35 @@ class LetterGeneratorApp:
     
     def merge_documents(self, doc1, doc2):
         """Объединение двух документов: добавление содержимого doc2 в конец doc1"""
-        from docx.oxml.ns import qn
-        from docx.oxml import OxmlElement
-        
-        # Добавляем разрыв страницы
+        # Добавляем разрыв страницы перед добавлением нового содержимого
         doc1.add_page_break()
         
-        # Копируем все параграфы из doc2 в doc1
+        # Копируем все элементы из doc2 в doc1
         for element in doc2.element.body:
+            # Создаем копию элемента для добавления
             doc1.element.body.append(element)
         
         return doc1
+    
+    def clear_headers_footers(self, doc):
+        """Полная очистка колонтитулов и установка отступов в 0"""
+        from docx.shared import Cm
+        
+        for section in doc.sections:
+            # Устанавливаем все отступы колонтитулов в 0
+            section.top_margin = Cm(0)
+            section.bottom_margin = Cm(0)
+            section.header_distance = Cm(0)
+            section.footer_distance = Cm(0)
+            
+            # Очищаем содержимое всех колонтитулов
+            for header in [section.header, section.first_page_header, section.even_page_header]:
+                for paragraph in header.paragraphs:
+                    paragraph.clear()
+            
+            for footer in [section.footer, section.first_page_footer, section.even_page_footer]:
+                for paragraph in footer.paragraphs:
+                    paragraph.clear()
     
     def process_files(self):
         """Основная логика обработки файлов"""
@@ -434,6 +455,8 @@ class LetterGeneratorApp:
                     
                     # Генерация временного первого письма
                     temp_doc1 = Document(self.template1_path.get())
+                    # Очищаем колонтитулы и отступы
+                    self.clear_headers_footers(temp_doc1)
                     date_full = f"{data['date']} года рождения" if data['date'] else ''
                     date_short = f"{data['date']} рождения" if data['date'] else ''
                     replacements1 = {
@@ -454,6 +477,8 @@ class LetterGeneratorApp:
                     
                     # Генерация временного второго письма
                     temp_doc2 = Document(self.template2_path.get())
+                    # Очищаем колонтитулы и отступы
+                    self.clear_headers_footers(temp_doc2)
                     replacements2 = {
                         self.TEMPLATE_NAME: data['name_initials'],
                         self.TEMPLATE_ADDRESS_SHORT: data['address'],
@@ -473,12 +498,16 @@ class LetterGeneratorApp:
                 
                 # Сохранение объединенных документов
                 if merged_doc1:
+                    # Финальная очистка колонтитулов перед сохранением
+                    self.clear_headers_footers(merged_doc1)
                     output1 = os.path.join(output_dir, "Уведомления_все.docx")
                     merged_doc1.save(output1)
                     self.log(f"\n✓ Сохранен объединенный файл: Уведомления_все.docx")
                     created_count += 1
                 
                 if merged_doc2:
+                    # Финальная очистка колонтитулов перед сохранением
+                    self.clear_headers_footers(merged_doc2)
                     output2 = os.path.join(output_dir, "Не_занятые_все.docx")
                     merged_doc2.save(output2)
                     self.log(f"✓ Сохранен объединенный файл: Не_занятые_все.docx")
