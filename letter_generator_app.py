@@ -529,6 +529,7 @@ class LetterGeneratorApp:
                             new_para.paragraph_format.first_line_indent = para.paragraph_format.first_line_indent
                             new_para.paragraph_format.space_before = para.paragraph_format.space_before
                             new_para.paragraph_format.space_after = para.paragraph_format.space_after
+                            new_para.paragraph_format.line_spacing = 0.9
                             for run in para.runs:
                                 new_run = new_para.add_run(run.text)
                                 new_run.bold = run.bold
@@ -572,6 +573,7 @@ class LetterGeneratorApp:
                             new_para.paragraph_format.first_line_indent = para.paragraph_format.first_line_indent
                             new_para.paragraph_format.space_before = para.paragraph_format.space_before
                             new_para.paragraph_format.space_after = para.paragraph_format.space_after
+                            new_para.paragraph_format.line_spacing = 0.9
                             for run in para.runs:
                                 new_run = new_para.add_run(run.text)
                                 new_run.bold = run.bold
